@@ -1,4 +1,4 @@
-%% Exercise (after class, or now if you want): write a forward-chaining program 
+%% Exercise: write a forward-chaining program 
 % that finds the max of a sequence of numbers. Implement a predicate
 % max_of_list : natlist -> nat -> type.
 %
@@ -31,6 +31,7 @@ max/= : max X X X.
 
 cur_max : nat -> type.
 input : natlist -> type.
+
 update : cur_max M * input (ncons X L) * max M X M' -o {cur_max M' * input L}.
 stop : input nnil -o {1}.
 

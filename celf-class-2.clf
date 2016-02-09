@@ -1,4 +1,3 @@
-%%%% Celf class for LambdaLadies, Part II %%%%
 % Loosely following lecture notes by Frank Pfenning:
 % http://www.cs.cmu.edu/~fp/courses/15816-s12/lectures/22-concurrent.pdf
 
@@ -52,15 +51,13 @@ l : list = cons a (cons b (cons c (cons a nil))).
 
 %%%%
 
-%% Exercise (after class, or now if you want): write a forward-chaining program 
+%% Exercise: write a forward-chaining program 
 % that finds the max of a sequence of numbers. Implement a predicate
 % max_of_list : natlist -> nat -> type.
 % max_of_list L N means N is the max elt of L.
 %
-% Write a "parallel" implementation if you can -- i.e. write a solution
+% Write a concurrent implementation if you can -- i.e. write a solution
 % where elements may be compared in any order.
-%
-% My nonparallel sol'n is 6 lines & parallel is 10.
 %
 % The following definitions may be helpful:
 
@@ -84,8 +81,14 @@ max/2 : max X Y Y
          <- lt X Y.
 max/= : max X X X.
 
-
 testlist : natlist = ncons (s (s z)) (ncons z (ncons (s z) (ncons (s (s z)) nnil))).
+
+
+input : natlist -> type.
+nmember : nat -> type.
+
+% #query * * * 1 input testlist -o {nmember X}.
+
 
 %% see celf-class-2-sols.clf for answers
 
@@ -99,7 +102,7 @@ testlist : natlist = ncons (s (s z)) (ncons z (ncons (s z) (ncons (s (s z)) nnil
 
 
 % Destinations are a trick for keeping ordering information on linear
-% atoms.
+% predicates.
 dest : type.
 mem : dest -> nat -> dest -> type.
 % "linked list" of nats.
@@ -132,6 +135,5 @@ sort/top : sort L L'
 
 #query * * * 3 sort testlist L.
 
-%% Graph bipartiteness (next time?) %%
 
 
