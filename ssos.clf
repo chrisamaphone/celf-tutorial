@@ -1,0 +1,33 @@
+
+tm : type.
+lam : (tm -> tm) -> tm.
+app : tm -> tm -> tm.
+pair : tm -> tm -> tm.
+pi1 : tm -> tm.
+pi2 : tm -> tm.
+
+dest : type.
+dst : dest -o tm.
+
+eval : tm -> dest -> type.
+retn : tm -> dest -> type.
+cont : dest -> (tm -> tm) -> dest -> type.
+
+ev/lam : eval (lam M) D -o {retn (lam M) D}.
+ev/app : eval (app M N) D -o {Exists d. eval M d * cont d (\!h. app h N) D}.
+ev/pair : eval (pair M N) D -o {retn (pair M N) D}.
+ev/pi1 : eval (pi1 M) D -o {Exists d. eval M d * cont d (\!h. pi1 h) D}.
+ev/pi2 : eval (pi2 M) D -o {Exists d. eval M d * cont d (\!h. pi2 h) D}.
+ev/var : eval (dst D) D' -o {cont D (\!h. h) D'}.
+
+ret-con/beta : retn (lam M) D * cont D (\!h. app h N) D' 
+                    -o {Exists d. eval N d * eval (M !(dst d)) D'}.
+
+ret-con/id   : retn V D * cont D (\!h. h) D' -o {retn V D'}.
+
+ret-con/pi1  : retn (pair M N) D * cont D (\!h. pi1 h) D' -o {eval M D'}.
+ret-con/pi2  : retn (pair M N) D * cont D (\!h. pi2 h) D' -o {eval N D'}.
+
+d0 : dest.
+#trace * {eval (app (lam \!x.x) (lam \!x.x)) d0}.
+#query * * * 1 Pi d0. eval (app (lam \!x.x) (lam \!x.x)) d0 -o {retn V d0}.

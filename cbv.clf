@@ -1,0 +1,53 @@
+% CBV semantics as a restaging of sharing
+% Ian Zerny & Frank Pfenning
+
+tp : type.
+arrow : tp -> tp -> tp.
+
+exp : tp -> type.
+lam : (exp A -> exp B) -> exp (arrow A B).
+app : exp (arrow A B) -> exp A -> exp B.
+
+dest : tp -> type.
+var : dest A -> exp A.
+
+frame : tp -> tp -> type.
+app1 : exp A -> frame (arrow A B) B.
+app2 : exp (arrow A B) -> frame A B.
+fwd : frame A A.
+
+eval : exp A -> dest A -> type.
+retn : exp A -> dest A -> type.
+cont : dest A -> frame A B -> dest B -> type.
+#mode eval - -.
+#mode retn - -.
+#mode cont - - -.
+
+e/lam : eval (lam \!x. E !x) D -o {retn (lam \!x. E !x) D}.
+e/app : eval (app E1 E2) D -o {Exists d1. eval E1 d1 * cont d1 (app1 E2) D}.
+e/app1 : cont D1 (app1 E2) D * retn (lam \!x. E !x) D1
+         -o {Exists d2. eval E2 d2 * cont d2 (app2 (lam \!x. E !x)) D}.
+e/app2 : cont D2 (app2 (lam \!x. E !x)) D * retn V2 D2
+         -o {Exists x. eval (E !(var x)) D * !retn V2 x}.
+e/var : eval (var X) D -o {cont X fwd D}.
+e/fwd : cont X fwd D * !retn V2 X -o {retn V2 D}.
+% e/bind is eliminated in favor of e/app2
+
+% Sample queries
+
+% I I --> I
+#query * 1 * 1
+Pi d0. eval (app (lam \!x. x) (lam \!y. y)) d0 -o {retn V d0}.
+
+% K I --> K*  [actually, a closure...]
+#query * 1 * 1
+Pi d0. eval (app (lam \!x. lam \!y. x) (lam \!u. u)) d0 -o {Exists V. retn V d0}.
+
+% S K K I --> I
+#query * 1 * 1
+Pi d0. eval (app (app (app (lam \!x. lam \!y. lam \!z. app (app x z) (app y z))
+                           (lam \!a. lam \!b. a))
+                      (lam \!c. lam \!d. c))
+                 (lam \!e. e))
+            d0
+       -o {Exists V. retn V d0}.

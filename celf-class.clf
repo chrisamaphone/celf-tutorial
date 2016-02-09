@@ -1,0 +1,158 @@
+% Proof search:
+% - goal-driven - satisfy a query
+% - data-driven - run rules until they give us no new info (saturation)
+% -- think "database of facts" - what new facts can we learn?
+
+% Abstract example:
+% a -> b. 
+% a -> c. 
+% b, c -> d. 
+% e -> f.
+% #trace a.
+% db at the end of the trace:
+% a, b, c, d.
+
+% Synonyms: Forward inference, forward chaining, bottom-up logic
+% programming
+
+% Useful? Consider evenness predicate:
+% even(z). even(s(s(N))) :- even N.
+% vs
+% even(z). even(N) -> even(s(s(N))).
+% will never saturate... just keep generating bigger & bigger even numbers.
+
+% Consider the problem of reachability in a graph. We can define this in
+% prolog-like syntax:
+%
+% path(X,Y) :- edge(X,Y).
+% path(X,Z) :- edge(X,Y), path(Y,Z). 
+%
+
+
+% % Reachability
+% node : type.
+% edge : node -> node -> type.
+%  
+% path : node -> node -> type.
+% % path/edge : path X Y <- edge X Y.
+% % path/comp : path X Z <- edge X Y <- path Y Z.
+% 
+% a : node.
+% b : node.
+% c : node.
+% d : node.
+% e : node.
+% f : node.
+% 
+% ab : edge a b.
+% ac : edge a c.
+% cd : edge c d.
+% ad : edge a d.
+% de : edge d e.
+% ef : edge e f.
+
+% #query * * * 1 path a f.
+
+% path/edge : edge X Y -> {!path X Y}.
+% path/comp : edge X Y -> path Y Z -> {!path X Z}.
+                
+% this doesn't work because "X pers" are duplicated. >:|
+% #trace * 1.
+
+% "monotonicity" of the db
+% Linear logic: instead of "facts being added", "resources being produced"
+% (and consumed!)
+% A -o B  different from  A -> B: if you have A -> B and an A, you get B,
+% but A is still around.
+%
+% Example: dollar-bill -o snack.
+%
+% Other connectives:
+% *   "tensor"  dollar-bill -o snack * soda
+%               50c * 50c -o dollar-bill
+% &   "with"    dollar-bill -o snack & soda
+%               dollar-bill & (50c * 50c) -o snack
+% +   "plus"    dollar-bill -o snack + soda
+% 1   "one"     dollar-bill -o snack + 1
+% !   "bang"    dollar-bill -o !coffee
+% @   "affine"  use 0 or 1 times
+%
+% Exercise: express a machine that:
+% - accepts a dollar bill or two 50c coins
+% - offers a choice between a snack, soda, or bottomless coffee
+% - is faulty and might give you nothing
+%
+% Answer:
+% dollar-bill & (50c * 50c) -o (snack & soda & !coffee) + 1
+
+% Making change
+% q -o d * d * n
+% d -o n * n
+ 
+% Let's write some  Celf. First, some syntax.
+
+% Prolog      Celf
+% <rule>.      <name> : <rule>.
+% A :- B      A <- B
+% p(X,Y,Z)    p X Y Z % where somewhere in the file we have...
+%             xtype : type. ytype : type. ztype : type.
+%             p : xtype -> ytype -> ztype -> type.
+% A :- B, C   A <- B <- C
+
+% Non-prolog constructs:
+% A -o B      linear arrow (state transition)
+% A * B       linear "and" (resource conjunction)
+% {A}         forward chaining
+% A & B       choice
+% A + B
+% 1           nil resource
+% !A, @A      persistent & affine modalities
+
+quarter : type.
+dime : type.
+nickel : type.
+
+makeChange/q : quarter -o {dime * dime * @nickel}.
+makeChange/d : dime -o {@nickel * @nickel}.
+
+#trace * {quarter * quarter * quarter * quarter}. 
+#query * * * 1 quarter * quarter * quarter * quarter -o {1}.
+
+% makeChange/q : quarter -o {dime * dime * @nickel}.
+% makeChange/d : dime -o {@nickel * @nickel}.
+
+% init : type = {quarter * quarter * quarter * quarter}.
+
+% #trace * init.
+% #query * * * 1 init -o {1}. 
+
+% Observe nondeterministic semantics.
+% Let's see if we can play with that.
+
+card : type.
+c1 : card.
+c2 : card.
+c3 : card.
+c4 : card.
+c5 : card.
+
+indeck : card -> type.
+draw : card -> type.
+
+drawcard : indeck C -o {draw C}.
+
+% init : type = {indeck c1 * indeck c2 * indeck c3 * indeck c4 * indeck c5}.
+
+ 
+card_list : type.
+cnil : card_list.
+ccons : card -> card_list -> card_list.
+% A -> B read internally as !A -o B
+
+current_list : card_list -> type.
+ 
+collect : draw C * current_list L -o {current_list (ccons C L)}.
+ 
+init : type = {current_list cnil * indeck c1 * indeck c2 * indeck c3 * indeck c4 * indeck c5}.
+#trace * init.
+#query * * * 10 init -o {current_list L}.

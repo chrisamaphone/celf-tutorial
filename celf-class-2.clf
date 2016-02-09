@@ -1,0 +1,137 @@
+%%%% Celf class for LambdaLadies, Part II %%%%
+% Loosely following lecture notes by Frank Pfenning:
+% http://www.cs.cmu.edu/~fp/courses/15816-s12/lectures/22-concurrent.pdf
+
+% Agenda: permutations, max/parallel max, parallel sorting,
+%   possibly graph bipartiteness if we get to it.
+
+%% Permutations, with a list structure
+
+% Some arbitrary distinct list elements
+elt : type.
+a : elt.
+b : elt.
+c : elt.
+
+list : type.
+nil : list.
+cons : elt -> list -> list.
+
+member : elt -> type.
+collect : list -> type.
+
+collectL : member X * collect L -o {collect (cons X L)}.
+
+init : type = { member a * member b * member c * collect nil }.
+
+% #trace * init.
+% #trace * init.
+% #trace * init.
+% #trace * init.
+
+%% Relation for one list being a permutation of another
+perm : list -> list -> type.
+
+load : list -> type.
+load/nil : load nil -o {collect nil}.
+load/cons : load (cons X L) -o {member X * load L}.
+
+%% higher-order rule
+%% backward chaining invoking forward chaining
+go : perm L L'
+     <- (load L -o {collect L'}).
+
+l : list = cons a (cons b (cons c (cons a nil))).
+#query * * * 3 perm l L.
+
+% Again, this does not systematically generate *all* permutations.
+% The key property of the framework is that our encodings should
+% "correspond to provability":
+% If L' is a permutation of L, there *exists* a proof in the framework of
+% "perm L L'".
+
+%%%%
+
+%% Exercise (after class, or now if you want): write a forward-chaining program 
+% that finds the max of a sequence of numbers. Implement a predicate
+% max_of_list : natlist -> nat -> type.
+% max_of_list L N means N is the max elt of L.
+%
+% Write a "parallel" implementation if you can -- i.e. write a solution
+% where elements may be compared in any order.
+%
+% My nonparallel sol'n is 6 lines & parallel is 10.
+%
+% The following definitions may be helpful:
+
+nat : type.
+z : nat.
+s : nat -> nat.
+
+natlist : type.
+nnil : natlist.
+ncons : nat -> natlist -> natlist.
+
+lt : nat -> nat -> type.
+lt/z : lt z (s N).
+lt/s : lt (s N) (s M)
+         <- lt N M.
+
+max : nat -> nat -> nat -> type.
+max/1 : max X Y X
+         <- lt Y X.
+max/2 : max X Y Y
+         <- lt X Y.
+max/= : max X X X.
+
+
+testlist : natlist = ncons (s (s z)) (ncons z (ncons (s z) (ncons (s (s z)) nnil))).
+
+%% see celf-class-2-sols.clf for answers
+
+%%%%%
+
+%% Sorting %%
+% "parallel bubble sort"
+
+% what we wish we could write:
+% mem N * mem M * lt N M -o {mem M * mem N}.
+
+
+% Destinations are a trick for keeping ordering information on linear
+% atoms.
+dest : type.
+mem : dest -> nat -> dest -> type.
+% "linked list" of nats.
+
+% key rule:
+swap : mem D1 N D2 * mem D2 M D3 * lt N M
+           -o {mem D1 M D2 * mem D2 N D3}.
+
+% How are destinations introduced? Our "load" rule must create them.
+% This time we'll make this a backward-chaining predicate that also tracks
+% the final answer.
+ld : dest -> natlist -> dest -> natlist -> type.
+% ld D0 L Dn L' - load L between D0 and Dn to get answer L'.
+coll : dest -> natlist -> dest -> type.
+% coll D0 L Dn - collect members between D0 and Dn to get L.
+
+ld/cons : ld D0 (ncons N Ns) D Ks
+              o- (Pi d':dest. mem D N d' -o ld D0 Ns d' Ks).
+
+ld/nil : ld D0 nnil Dn Ks o- {coll D0 Ks Dn}.
+
+coll/nil : coll D0 nnil D0.
+coll/cons : coll D (ncons N Ks) Dn
+                o- mem D N D'
+                o- coll D' Ks Dn.
+
+sort : natlist -> natlist -> type.
+sort/top : sort L L'
+            <- (Pi d0. ld d0 L d0 L').
+
+#query * * * 3 sort testlist L.
+
+%% Graph bipartiteness (next time?) %%
+
+

@@ -1,0 +1,55 @@
+%% Exercise (after class, or now if you want): write a forward-chaining program 
+% that finds the max of a sequence of numbers. Implement a predicate
+% max_of_list : natlist -> nat -> type.
+%
+% Write a "parallel" implementation if you can -- i.e. write a solution
+% where elements may be compared in any order.
+%
+% The following definitions may be helpful:
+
+nat : type.
+z : nat.
+s : nat -> nat.
+
+natlist : type.
+nnil : natlist.
+ncons : nat -> natlist -> natlist.
+
+lt : nat -> nat -> type.
+lt/z : lt z (s N).
+lt/s : lt (s N) (s M)
+         <- lt N M.
+
+max : nat -> nat -> nat -> type.
+max/1 : max X Y X
+         <- lt Y X.
+max/2 : max X Y Y
+         <- lt X Y.
+max/= : max X X X.
+
+%% (one) answer %%
+
+cur_max : nat -> type.
+input : natlist -> type.
+update : cur_max M * input (ncons X L) * max M X M' -o {cur_max M' * input L}.
+stop : input nnil -o {1}.
+
+testlist : natlist = ncons (s (s z)) (ncons z (ncons (s z) (ncons (s (s z)) nnil))).
+
+#trace * {input testlist * cur_max z}.
+
+%% A more "parallel" answer
+nmember : nat -> type.
+nload : natlist -> type.
+
+nload/nil : nload nnil -o {1}.
+nload/cons : nload (ncons X Xs) -o {nmember X * nload Xs}.
+combine : nmember M * nmember N * max M N X -o {nmember X}.
+
+- : input L -o {nload L}.
+
+% - : max_of_list L X
+%     <- (input L -o {nmember X}).
+
+#trace * {input testlist}.
+#query * * * 1 input testlist -o {nmember X}.

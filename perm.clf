@@ -1,0 +1,38 @@
+%% Permutations, with a list structure
+
+% Some arbitrary distinct list elements
+elt : type.
+a : elt.
+b : elt.
+c : elt.
+
+list : type.
+nil : list.
+cons : elt -> list -> list.
+
+member : elt -> type.
+collect : list -> type.
+
+collectL : member X * collect L -o {collect (cons X L)}.
+
+init : type = { member a * member b * member c * collect nil }.
+
+#trace * init.
+#trace * init.
+#trace * init.
+#trace * init.
+
+%% Relation for one list being a permutation of another
+perm : list -> list -> type.
+
+load : list -> type.
+load/nil : load nil -o {collect nil}.
+load/cons : load (cons X L) -o {member X * load L}. 
+
+%% higher-order rule
+%% backward chaining invoking forward chaining
+go : perm L L'
+     <- (load L -o {collect L'}).
+
+l : list = cons a (cons b (cons c (cons a nil))).
+#query * * * 3 perm l L.

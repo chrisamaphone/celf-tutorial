@@ -1,0 +1,55 @@
+tm : type.
+
+lam : (tm -o tm) -o tm.
+app : tm -o tm -o tm.
+pair : tm & tm -o tm.
+pi1 : tm -o tm.
+pi2 : tm -o tm.
+bang : tm -> tm.
+ulet : tm -o (tm -> tm) -o tm.
+
+dest : type.
+
+dst : dest -o tm.
+udst : dest -> tm.
+
+eval : tm -> dest -> type.
+retn : tm -> dest -> type.
+cont : dest -> (tm -o tm) -> dest -> type.
+
+ev/lam : eval (lam \y. M y) X -o {retn (lam \y. M y) X}.
+ev/app : eval (app M N) W
+	  -o {Exists x. eval M x * cont x (\h. app h N) W}.
+ev/red : retn (lam \y. M y) X * cont X (\h. app h N) W
+          -o {Exists z. eval (M (dst z)) W * eval N z}.
+ev/var : eval (dst Z) W -o {cont Z (\h. h) W}.
+ev/fwd : retn V Z * cont Z (\h. h) W -o {retn V W}.
+
+ev/pair : eval (pair < M, N >) X -o {retn (pair < M, N >) X}.
+ev/pi1 : eval (pi1 M) W -o {Exists x. eval M x * cont x (\h. pi1 h) W}.
+ev/pi2 : eval (pi2 M) W -o {Exists x. eval M x * cont x (\h. pi2 h) W}.
+ev/proj1 : retn (pair < M, N >) X * cont X (\h. pi1 h) W
+            -o {eval M W}.
+ev/proj2 : retn (pair < M, N >) X * cont X (\h. pi2 h) W
+            -o {eval N W}.
+
+ev/bang : eval (bang M) X -o {retn (bang M) X}.
+ev/ulet : eval (ulet M (\!u. N !u)) W
+          -o {Exists x. eval M x * cont x (\h. ulet h (\!u. N !u)) W}.
+ev/bangred : retn (bang M) X * cont X (\h. ulet h (\!u. N !u)) W
+          -o {Exists u. !retn M u * eval (N !(udst u)) W}.
+ev/uvar : eval (udst U) W * !retn M U -o {eval M W}.
+
+% the frame in the two lines below is slightly dishonest
+% and incorrectly allows ev/fwd to pass M to W.
+% ev/uvar : eval (udst U) W -o {cont U (\h. h) W}.
+% ev/ufwd : !retn M U * cont U (\h. h) W -o {eval M W}.
+
+#query * 1 * 1
+Pi d0. eval (app (lam \x. x) (lam \y. y)) d0 -o {retn V d0}.
+
+#query * 1 * 1
+Pi d0. eval (app (lam \x. pi1 (pair < x, x >)) (lam \y. y)) d0 -o {retn V d0}.
+
+#query * 1 * 1
+Pi d0. eval (ulet (bang (lam \x. x)) (\!u. app u (app u (lam \y. y)))) d0 -o {retn V d0}.
